@@ -46,6 +46,10 @@ QuarkContainerMD::QuarkContainerMD(IContainerMD::id_t id, IFileMDSvc* file_svc,
     pFilesKey(stringify(id) + constants::sMapFilesSuffix),
     pDirsKey(stringify(id) + constants::sMapDirsSuffix)
 {
+  mSubcontainers->set_deleted_key("");
+  mFiles->set_deleted_key("");
+  mSubcontainers->set_empty_key("##_EMPTY_##");
+  mFiles->set_empty_key("##_EMPTY_##");
   mCont.set_id(id);
   mCont.set_mode(040755);
   mClock = std::chrono::high_resolution_clock::now().time_since_epoch().count();
@@ -846,8 +850,10 @@ QuarkContainerMD::getEnv(std::string& env, bool escapeAnd)
 IContainerMD::ContainerMap
 QuarkContainerMD::copyContainerMap() const
 {
-  std::shared_lock<std::shared_timed_mutex> lock(mMutex);
   IContainerMD::ContainerMap retval;
+  retval.set_deleted_key("");
+  retval.set_empty_key("##_EMPTY_##");
+  std::shared_lock<std::shared_timed_mutex> lock(mMutex);
 
   for (auto it = mSubcontainers->begin(); it != mSubcontainers->end(); ++it) {
     retval.insert(std::make_pair(it->first, it->second));
@@ -862,8 +868,10 @@ QuarkContainerMD::copyContainerMap() const
 IContainerMD::FileMap
 QuarkContainerMD::copyFileMap() const
 {
-  std::shared_lock<std::shared_timed_mutex> lock(mMutex);
   IContainerMD::FileMap retval;
+  retval.set_deleted_key("");
+  retval.set_empty_key("##_EMPTY_##");
+  std::shared_lock<std::shared_timed_mutex> lock(mMutex);
 
   for (auto it = mFiles->begin(); it != mFiles->end(); ++it) {
     retval.insert(std::make_pair(it->first, it->second));
