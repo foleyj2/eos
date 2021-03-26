@@ -197,24 +197,24 @@ Server::MonitorCaps() noexcept
 
         for (auto it = allcaps.begin(); it != allcaps.end(); ++it) {
           if (EOS_LOGS_DEBUG) {
-            eos_static_debug("cap q-node %lx", it->second->_quota().quota_inode());
+            eos_static_debug("cap q-node %lx", (*it->second)()->_quota().quota_inode());
           }
 
           // if we find a cap with 'noquota' contents, we just ignore this one
-          if (it->second->_quota().inode_quota() == noquota) {
+          if ((*it->second)()->_quota().inode_quota() == noquota) {
             continue;
           }
 
-          if (it->second->_quota().quota_inode()) {
-            quotainfo_t qi(it->second->uid(), it->second->gid(),
-                           it->second->_quota().quota_inode());
+          if ((*it->second)()->_quota().quota_inode()) {
+            quotainfo_t qi((*it->second)()->uid(), (*it->second)()->gid(),
+                           (*it->second)()->_quota().quota_inode());
 
             // skip if we did this already ...
             if (qmap.count(qi.id())) {
-              qmap[qi.id()].authids.push_back(it->second->authid());
+              qmap[qi.id()].authids.push_back((*it->second)()->authid());
             } else {
               qmap[qi.id()] = qi;
-              qmap[qi.id()].authids.push_back(it->second->authid());
+              qmap[qi.id()].authids.push_back((*it->second)()->authid());
             }
           }
         }
@@ -253,8 +253,8 @@ Server::MonitorCaps() noexcept
               }
 
               if (cap) {
-                cap->mutable__quota()->set_inode_quota(avail_files);
-                cap->mutable__quota()->set_volume_quota(avail_bytes);
+                (*cap)()->mutable__quota()->set_inode_quota(avail_files);
+                (*cap)()->mutable__quota()->set_volume_quota(avail_bytes);
                 // send this cap (again)
                 Cap().BroadcastCap(cap);
               }
@@ -876,14 +876,14 @@ Server::ValidateCAP(const eos::fusex::md& md, mode_t mode,
   FuseServer::Caps::shared_cap cap = Cap().GetTS(md.authid());
 
   // no cap - go away
-  if (!cap->id()) {
+  if (!(*cap)()->id()) {
     eos_static_err("no cap for authid=%s", md.authid().c_str());
     errno = ENOENT;
     return 0;
   }
 
   // wrong cap - go away
-  if ((cap->id() != md.md_ino()) && (cap->id() != md.md_pino())) {
+  if (((*cap)()->id() != md.md_ino()) && ((*cap)()->id() != md.md_pino())) {
     eos_static_err("wrong cap for authid=%s cap-id=%lx md-ino=%lx md-pino=%lx",
                    md.authid().c_str(), md.md_ino(), md.md_pino());
     errno = EINVAL;
@@ -891,14 +891,14 @@ Server::ValidateCAP(const eos::fusex::md& md, mode_t mode,
   }
 
   if (EOS_LOGS_DEBUG) {
-    eos_static_debug("cap-mode=%x mode=%x", cap->mode(), mode);
+    eos_static_debug("cap-mode=%x mode=%x", (*cap)()->mode(), mode);
   }
 
-  if ((cap->mode() & mode) == mode) {
+  if (((*cap)()->mode() & mode) == mode) {
     uint64_t now = (uint64_t) time(NULL);
 
     // leave some margin for revoking
-    if (cap->vtime() <= (now + 60)) {
+    if ((*cap)()->vtime() <= (now + 60)) {
       // cap expired !
       errno = ETIMEDOUT;
       return 0;
@@ -929,11 +929,11 @@ Server::InodeFromCAP(const eos::fusex::md& md)
     return 0;
   } else {
     if (EOS_LOGS_DEBUG) {
-      eos_static_debug("authid=%s cap-ino=%lx", md.authid().c_str(), cap->id());
+      eos_static_debug("authid=%s cap-ino=%lx", md.authid().c_str(), (*cap)()->id());
     }
   }
 
-  return cap->id();
+  return (*cap)()->id();
 }
 
 //------------------------------------------------------------------------------

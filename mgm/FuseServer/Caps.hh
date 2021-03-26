@@ -44,7 +44,7 @@ class Caps : public eos::common::RWMutex
 {
   friend class FuseServer;
 public:
-  class capx : public eos::fusex::cap
+  class capx
   {
   public:
 
@@ -54,7 +54,7 @@ public:
 
     capx& operator=(eos::fusex::cap other)
     {
-      (*((eos::fusex::cap*)(this))) = other;
+      proto = other;
       return *this;
     }
 
@@ -68,8 +68,13 @@ public:
       return &mVid;
     }
 
+    eos::fusex::cap* operator()() {
+      return &proto;
+    }
+
   private:
     eos::common::VirtualIdentity mVid;
+    eos::fusex::cap proto;
   };
 
   typedef std::shared_ptr<capx> shared_cap;
@@ -127,7 +132,7 @@ public:
       shared_cap cap = mCaps[id];
       uint64_t now = (uint64_t) time(NULL);
 
-      if ((cap->vtime() + 10) <= now) {
+      if (((*cap)()->vtime() + 10) <= now) {
         return Remove(cap);
       } else {
         if ((idtime + 10) <= now) {
@@ -158,7 +163,7 @@ public:
       eos::common::RWMutexReadLock lock(*this);
 
       for (auto it=mCaps.begin(); it!=mCaps.end(); ++it) {
-        if (it->second->clientuuid() == uuid) {
+        if ((*it->second)()->clientuuid() == uuid) {
           deleteme.insert(it->second);
         }
       }
@@ -189,31 +194,31 @@ public:
     bool rc = false;
 
     // you have to have a write lock for the caps
-    if (mCaps.count(cap->authid())) {
+    if (mCaps.count((*cap)()->authid())) {
       rc = true;
-      mCaps.erase(cap->authid());
+      mCaps.erase((*cap)()->authid());
     }
 
-    mInodeCaps[cap->id()].erase(cap->authid());
+    mInodeCaps[(*cap)()->id()].erase((*cap)()->authid());
 
-    if (!mInodeCaps[cap->id()].size()) {
-      mInodeCaps.erase(cap->id());
+    if (!mInodeCaps[(*cap)()->id()].size()) {
+      mInodeCaps.erase((*cap)()->id());
     }
 
-    mClientInoCaps[cap->clientid()][cap->id()].erase(cap->authid());
+    mClientInoCaps[(*cap)()->clientid()][(*cap)()->id()].erase((*cap)()->authid());
 
-    if (!mClientInoCaps[cap->clientid()][cap->id()].size()) {
-      mClientInoCaps[cap->clientid()].erase(cap->id());
+    if (!mClientInoCaps[(*cap)()->clientid()][(*cap)()->id()].size()) {
+      mClientInoCaps[(*cap)()->clientid()].erase((*cap)()->id());
 
-      if (!mClientInoCaps[cap->clientid()].size()) {
-	mClientInoCaps.erase(cap->clientid());
+      if (!mClientInoCaps[(*cap)()->clientid()].size()) {
+	mClientInoCaps.erase((*cap)()->clientid());
       }
     }
 
-    mClientCaps[cap->clientid()].erase(cap->authid());
+    mClientCaps[(*cap)()->clientid()].erase((*cap)()->authid());
 
-    if (mClientCaps[cap->clientid()].size() == 0) {
-      mClientCaps.erase(cap->clientid());
+    if (mClientCaps[(*cap)()->clientid()].size() == 0) {
+      mClientCaps.erase((*cap)()->clientid());
     }
     return rc;
   }
